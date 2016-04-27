@@ -9,10 +9,13 @@ I wanted something which could download all episodes of my favorite podcasts for
 (Clone this repo. Install Elixir.)
 
 Get required depdencies the first time:
+
 `mix deps.get`
 
 Run:
+
 `mix run -e "PodcastDownloader.run"`
 
 Or if you want to specify `feeds` file and `downloads` folder:
+
 `mix run -e "PodcastDownloader.run('feeds', 'downloads')"`
