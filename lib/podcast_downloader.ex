@@ -98,6 +98,7 @@ defmodule PodcastDownloader do
       |> Enum.at(-1) 
       |> String.split("?") 
       |> hd
+      |> URI.decode
       
     file = "#{folder}/#{file}"
     
