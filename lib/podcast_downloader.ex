@@ -111,7 +111,7 @@ defmodule PodcastDownloader do
       end
     end
     
-    if !File.exists?(file) do
+    if !File.exists?(URI.decode(file)) do
       IO.puts("Downloading: #{file}")
       download_piece(ref, file)
     else
@@ -146,7 +146,7 @@ defmodule PodcastDownloader do
         download_piece(ref, file)
         
       %HTTPoison.AsyncEnd{id: ^ref} ->
-        case File.rename(tmp_file(file), file) do
+        case File.rename(tmp_file(file), URI.decode(file)) do
           :ok -> :ok
           
           {:error, reason} ->
