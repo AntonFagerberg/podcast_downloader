@@ -113,7 +113,10 @@ defmodule PodcastDownloader do
     
     if !File.exists?(URI.decode(file)) do
       IO.puts("Downloading: #{file}")
-      download_piece(ref, file)
+      case download_piece(ref, file) do
+        {:error, :timeout} -> download(url, folder)
+        _ -> :ok
+      end
     else
       IO.puts("File already downloaded: #{file}")
     end
@@ -128,6 +131,7 @@ defmodule PodcastDownloader do
         
       %HTTPoison.AsyncStatus{code: code, id: ^ref} -> 
         IO.puts(:stderr, "Got non-ok HTTP status code, skipping. (#{code})")
+        {:error, :skip}
         
       %HTTPoison.AsyncHeaders{headers: _headers, id: ^ref} ->
         download_piece(ref, file)
@@ -139,7 +143,7 @@ defmodule PodcastDownloader do
           :ok -> :ok
           
           {:error, reason} ->
-            IO.puts(:stderr, "Unable to write to file '#{tmp_file(file)}'. (#{reason})")
+            IO.puts(:stderr, "\nUnable to write to file '#{tmp_file(file)}'. (#{reason})")
             System.halt(1)
         end
         
@@ -150,11 +154,12 @@ defmodule PodcastDownloader do
           :ok -> :ok
           
           {:error, reason} ->
-            IO.puts(:stderr, "Unable to copy temporary file '#{tmp_file(file)}' to `#{file}`. (#{reason})")
+            IO.puts(:stderr, "\nUnable to copy temporary file '#{tmp_file(file)}' to `#{file}`. (#{reason})")
             System.halt(1)
         end
         
         IO.puts("\nDownload complete: #{file}")
+        :ok
         
       %HTTPoison.AsyncRedirect{id: ^ref, to: new_url} ->
         IO.puts("URL moved, redirecting.")
@@ -166,6 +171,10 @@ defmodule PodcastDownloader do
           |> Enum.join("/")
         
         download(new_url, folder)
+    after
+      60_000 -> 
+        IO.puts(:stderr, "\nReceive timeout, will retry.")
+        {:error, :timeout}
     end
   end
 end
