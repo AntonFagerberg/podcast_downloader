@@ -89,37 +89,40 @@ defmodule PodcastDownloader do
   end
   
   defp download(url, folder) do
-    {:ok, %HTTPoison.AsyncResponse{id: ref}} = 
-      HTTPoison.get(url, %{}, [stream_to: self, follow_redirect: true])
+    case HTTPoison.get(url, %{}, [stream_to: self, follow_redirect: true]) do
+      {:error, reason} ->
+        IO.puts(:stderr, "Unable to connect to url '#{url}', skipping. (#{reason})")
 
-    file = 
-      url 
-      |> String.split("/") 
-      |> Enum.at(-1) 
-      |> String.split("?") 
-      |> hd
-      |> URI.decode
-      
-    file = "#{folder}/#{file}"
-    
-    if File.exists?(tmp_file(file)) do
-      case File.rm(tmp_file(file)) do
-        :ok -> :ok
+      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
+        file = 
+          url 
+          |> String.split("/") 
+          |> Enum.at(-1) 
+          |> String.split("?") 
+          |> hd
+          |> URI.decode
+          
+        file = "#{folder}/#{file}"
         
-        {:error, reason} ->
-          IO.puts(:stderr, "Unable to remove temporary file '#{tmp_file(file)}'. (#{reason})")
-          System.halt(1)
-      end
-    end
-    
-    if !File.exists?(URI.decode(file)) do
-      IO.puts("Downloading: #{file}")
-      case download_piece(ref, file) do
-        {:error, :timeout} -> download(url, folder)
-        _ -> :ok
-      end
-    else
-      IO.puts("File already downloaded: #{file}")
+        if File.exists?(tmp_file(file)) do
+          case File.rm(tmp_file(file)) do
+            :ok -> :ok
+            
+            {:error, reason} ->
+              IO.puts(:stderr, "Unable to remove temporary file '#{tmp_file(file)}'. (#{reason})")
+              System.halt(1)
+          end
+        end
+        
+        if !File.exists?(URI.decode(file)) do
+          IO.puts("Downloading: #{file}")
+          case download_piece(ref, file) do
+            {:error, :timeout} -> download(url, folder)
+            _ -> :ok
+          end
+        else
+          IO.puts("File already downloaded: #{file}")
+        end
     end
   end
   
@@ -174,7 +177,7 @@ defmodule PodcastDownloader do
         download(new_url, folder)
     after
       60_000 -> 
-        IO.puts(:stderr, "\nReceive timeout, will retry.")
+        IO.puts(:stderr, "\nReceived timeout, will retry.")
         {:error, :timeout}
     end
   end
