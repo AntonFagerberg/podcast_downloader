@@ -24,7 +24,7 @@ defmodule PodcastDownloader do
         {:ok, response} -> 
           [Map.get(response, :body)]
         
-        {:error, reason} -> 
+        {:error, %HTTPoison.Error{reason: reason}} -> 
           IO.puts(:stderr, "Unable to connect to url '#{url}', skipping. (#{reason})")
           []
       end
@@ -90,7 +90,7 @@ defmodule PodcastDownloader do
   
   defp download(url, folder) do
     case HTTPoison.get(url, %{}, [stream_to: self, follow_redirect: true]) do
-      {:error, reason} ->
+      {:error, %HTTPoison.Error{reason: reason}} ->
         IO.puts(:stderr, "Unable to connect to url '#{url}', skipping. (#{reason})")
 
       {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
